@@ -18,7 +18,7 @@ pub struct TemplateApp {
 
 impl Default for TemplateApp {
     fn default() -> Self {
-        let questions = read_questions_from_csv("questions.csv");
+        let questions = read_questions_from_csv();
         let current_question = questions[0].clone();
         Self {
             questions,

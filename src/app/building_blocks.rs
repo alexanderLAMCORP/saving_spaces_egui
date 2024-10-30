@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::io::{self, BufRead};
 
+use log::Record;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -58,14 +59,15 @@ impl Answer {
     }
 }
 
-fn parse_csv_row(row: &str) -> Question {
+/* fn parse_csv_row(row: &str) -> Question {
     // Split the row by commas and collect fields into a vector
     let fields: Vec<&str> = row.split(',').map(|s| s.trim()).collect();
 
     // Parse the question ID and question text
+    println!("{}", fields[0]);
     let question_id: i32 = fields[0]
         .parse()
-        .expect("The question id is not a an integer");
+        .expect("The question id is not an integer");
     let question_text = fields[1].to_string();
 
     // Parse answers in pairs of (answer_text, next_question)
@@ -82,19 +84,41 @@ fn parse_csv_row(row: &str) -> Question {
     }
 
     Question::new(question_id, question_text, answers)
+} */
+fn parse_csv_row(record: &csv::StringRecord) -> Question {
+    // println!("{:?}", &record[0]);
+    // Extract the question ID and question text
+    let question_id: i32 = record[0]
+        .parse()
+        .expect("The question id is not an integer");
+    let question_text = record[1].to_string();
+
+    // Parse answers in pairs of (answer_text, next_question)
+    let mut answers = Vec::new();
+    let mut i = 2;
+    while i < record.len() {
+        if let (Some(answer_text), Some(next_question_str)) = (record.get(i), record.get(i + 1)) {
+            let next_question = next_question_str
+                .parse()
+                .expect("Next question id is not an integer");
+            answers.push(Answer::new(answer_text.to_string(), next_question));
+        }
+        i += 2; // Move to the next pair of fields
+    }
+
+    Question::new(question_id, question_text, answers)
 }
-
-pub fn read_questions_from_csv(file_path: &str) -> Vec<Question> {
+pub fn read_questions_from_csv() -> Vec<Question> {
     let mut questions = Vec::new();
+    const CSV_DATA: &str = include_str!("questions.csv");
+    let mut reader = csv::ReaderBuilder::new()
+        .flexible(true)
+        .has_headers(false)
+        .from_reader(CSV_DATA.as_bytes());
 
-    // Open the file and create a buffered reader
-    let file = File::open(file_path).expect("Didn't find file.");
-    let reader = io::BufReader::new(file);
-
-    // Iterate over each line in the CSV file
-    for line in reader.lines() {
-        let line = line.expect("Couldn't read the lines.");
-        questions.push(parse_csv_row(&line));
+    for result in reader.records() {
+        let record = result.expect("Couldn't read the record.");
+        questions.push(parse_csv_row(&record));
     }
 
     questions
