@@ -1,7 +1,14 @@
+mod building_blocks;
+
+use building_blocks::{read_questions_from_csv, Answer, Question};
+
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct TemplateApp {
+    questions: Vec<Question>,
+    current_question: Question,
+
     // Example stuff:
     label: String,
 
@@ -11,7 +18,11 @@ pub struct TemplateApp {
 
 impl Default for TemplateApp {
     fn default() -> Self {
+        let questions = read_questions_from_csv("questions.csv");
+        let current_question = questions[0].clone();
         Self {
+            questions,
+            current_question,
             // Example stuff:
             label: "Hello World!".to_owned(),
             value: 2.7,
@@ -27,9 +38,9 @@ impl TemplateApp {
 
         // Load previous app state (if any).
         // Note that you must enable the `persistence` feature for this to work.
-        if let Some(storage) = cc.storage {
+        /* if let Some(storage) = cc.storage {
             return eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
-        }
+        } */
 
         Default::default()
     }
@@ -37,9 +48,9 @@ impl TemplateApp {
 
 impl eframe::App for TemplateApp {
     /// Called by the frame work to save state before shutdown.
-    fn save(&mut self, storage: &mut dyn eframe::Storage) {
+    /* fn save(&mut self, storage: &mut dyn eframe::Storage) {
         eframe::set_value(storage, eframe::APP_KEY, self);
-    }
+    } */
 
     /// Called each time the UI needs repainting, which may be many times per second.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
@@ -60,6 +71,9 @@ impl eframe::App for TemplateApp {
                     });
                     ui.add_space(16.0);
                 }
+                if ui.button("RESET").clicked() {
+                    self.current_question = self.questions[0].clone();
+                }
 
                 egui::widgets::global_theme_preference_buttons(ui);
             });
@@ -67,14 +81,22 @@ impl eframe::App for TemplateApp {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             // The central panel the region left after adding TopPanel's and SidePanel's
-            ui.heading("eframe template");
+            ui.heading("Welkom bij het platform van saving spaces");
 
             ui.horizontal(|ui| {
-                ui.label("Write something: ");
-                ui.text_edit_singleline(&mut self.label);
+                ui.label(self.current_question.show_text());
             });
 
-            ui.add(egui::Slider::new(&mut self.value, 0.0..=10.0).text("value"));
+            for answer in &self.current_question.get_answers() {
+                ui.horizontal(|ui| {
+                    if ui.button(answer.show_text()).clicked() {
+                        self.current_question = self.questions[answer.get_next_question_number()].clone();
+                    }
+                    
+                });
+            }
+
+            /* ui.add(egui::Slider::new(&mut self.value, 0.0..=10.0).text("value"));
             if ui.button("Increment").clicked() {
                 self.value += 1.0;
             }
@@ -89,7 +111,7 @@ impl eframe::App for TemplateApp {
             ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
                 powered_by_egui_and_eframe(ui);
                 egui::warn_if_debug_build(ui);
-            });
+            }); */
         });
     }
 }
