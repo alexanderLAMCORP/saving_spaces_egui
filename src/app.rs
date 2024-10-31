@@ -1,6 +1,7 @@
 mod building_blocks;
 
 use building_blocks::{read_questions_from_csv, Answer, Question};
+use egui::{Align, Layout};
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -80,21 +81,22 @@ impl eframe::App for TemplateApp {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            // The central panel the region left after adding TopPanel's and SidePanel's
-            ui.heading("Welkom bij het platform van saving spaces");
-
-            ui.horizontal(|ui| {
+            ui.with_layout(Layout::top_down(Align::Center), |ui| {
+                ui.add_space(10.0);
+                ui.heading("Welkom bij het platform van saving spaces");
+                ui.add_space(10.0);
                 ui.label(self.current_question.show_text());
-            });
+                ui.add_space(10.0);
 
-            for answer in &self.current_question.get_answers() {
-                ui.horizontal(|ui| {
+                for answer in &self.current_question.get_answers() {
                     if ui.button(answer.show_text()).clicked() {
-                        self.current_question = self.questions[answer.get_next_question_number()].clone();
+                        self.current_question =
+                            self.questions[answer.get_next_question_number()].clone();
                     }
+                    ui.add_space(10.0);
                     
-                });
-            }
+                }
+            });
 
             /* ui.add(egui::Slider::new(&mut self.value, 0.0..=10.0).text("value"));
             if ui.button("Increment").clicked() {
